@@ -110,44 +110,47 @@ int main()
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
-    // Vertex Array Object stores how each vertex attribute is read from vertex buffer.
-    unsigned int VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-
-    // Vertex Buffer Object stores vertex attributes.
-    const float vertices[] = {
-        -0.5f, -0.5f, 0.0f, // bottom left
-        0.5f, -0.5f, 0.0f, // bottom right
-        0.5f, 0.5f, 0.0f, // top right
-        -0.5f, 0.5f, 0.0f // top left
+    // ==== triangle A ====
+    constexpr float verticesA[] = {
+        -1.0f, 0.0f, 0.0f,
+        -0.5f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f
     };
 
-    unsigned int VBO;
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    unsigned int VAO_A, VBO_A;
 
-    // To be stored in an Element Buffer Object, which enables the re-use of common vertices.
-    // We are drawing a rectangle using 2 right-angled triangles.
-    // Some of the vertices are shared (specifically bottom left, top right)
-    const unsigned int vertexIndices[] = {
-        0, 1, 2,
-        3, 0, 2
-    };
+    glGenVertexArrays(1, &VAO_A);
+    glBindVertexArray(VAO_A);
 
-    unsigned int EBO;
-    glGenBuffers(1, &EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof (vertexIndices), vertexIndices, GL_STATIC_DRAW);
+    glGenBuffers(1, &VBO_A);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_A);
+    glBufferData(GL_ARRAY_BUFFER, sizeof (verticesA), verticesA, GL_STATIC_DRAW);
 
-    // Declare how OpenGL should interpret the vertex data (currently 3 position floats per vertex)
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*) 0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof (float), (void*) 0);
     glEnableVertexAttribArray(0);
 
     glBindVertexArray(0);
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    // ==== triangle B ====
+    constexpr float verticesB[] = {
+        0.0f, 0.0f, 0.0f,
+        0.5f, 1.0f, 0.0f,
+        1.0f, 0.0f, 0.0f
+    };
+
+    unsigned int VAO_B, VBO_B;
+
+    glGenVertexArrays(1, &VAO_B);
+    glBindVertexArray(VAO_B);
+
+    glGenBuffers(1, &VBO_B);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_B);
+    glBufferData(GL_ARRAY_BUFFER, sizeof (verticesB), verticesB, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof (float), (void*) 0);
+    glEnableVertexAttribArray(0);
+
+    glBindVertexArray(0);
 
     // Rendering loop.
     // This is where all rendering commands are executed (i.e., calculating pixel colours)
@@ -159,19 +162,23 @@ int main()
         glClearColor(0.97f, 0.79f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // Draw triangle
         glUseProgram(shaderProgram);
-        glBindVertexArray(VAO);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(VAO_A);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glBindVertexArray(0);
+
+        glBindVertexArray(VAO_B);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
         glBindVertexArray(0);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
+    glDeleteVertexArrays(1, &VAO_A);
+    glDeleteBuffers(1, &VBO_A);
+    glDeleteVertexArrays(1, &VAO_B);
+    glDeleteBuffers(1, &VBO_B);
     glDeleteProgram(shaderProgram);
 
     glfwTerminate();
