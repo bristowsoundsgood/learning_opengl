@@ -3,38 +3,17 @@
 #include "GLFW/glfw3.h"
 
 #include <iostream>
+#include <fstream>
+#include <sstream>
+#include <streambuf>
+#include <string>
 
-int windowWidth = 800;
-int windowHeight = 600;
+int WINDOW_WIDTH = 800;
+int WINDOW_HEIGHT = 600;
 
-const char *vertexShaderSource = "#version 330 core\n"
-    "layout (location = 0) in vec3 aPos;\n"
-    "void main()\n"
-    "{\n"
-    "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-    "}\0";
-
-const char* fragmentShaderSource = "#version 330 core\n"
-                                   "out vec4 FragColor;\n"
-                                   "void main()\n"
-                                   "{\n"
-                                   "FragColor = vec4(0.09f, 0.0f, 0.25f, 1.0f);\n"
-                                   "}\0";
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
-    glViewport(0, 0, width, height);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-}
-
-
-void processInput(GLFWwindow* window)
-{
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-    {
-        glfwSetWindowShouldClose(window, true);
-    }
-}
+std::string loadShaderSource(const char* filename);
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void processInput(GLFWwindow* window);
 
 int main()
 {
@@ -45,7 +24,7 @@ int main()
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // Create a GLFW window.
-    GLFWwindow* window = glfwCreateWindow(windowWidth, windowHeight, "Learn OpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Learn OpenGL", NULL, NULL);
     if (window == nullptr)
     {
         std::cerr << "Failed to create GLFW window." << std::endl;
@@ -63,12 +42,13 @@ int main()
         return -1;
     }
 
-    glViewport(0, 0, windowWidth, windowHeight);
+    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 
-    // Compile vertex shader
-    unsigned int vertexShader;
-    vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+    // ==== shaders ====
+    unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    std::string vertexShaderSrc = loadShaderSource("C:/Users/Joe/Desktop/Graphics/Projects/learning_opengl/Shaders/vertex_core.glsl");
+    const GLchar* vertShader = vertexShaderSrc.c_str();
+    glShaderSource(vertexShader, 1, &vertShader, NULL);
     glCompileShader(vertexShader);
 
     int success;
@@ -81,34 +61,70 @@ int main()
         return -1;
     }
 
-    // Compile fragment shader
-    unsigned int fragmentShader;
-    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-    glCompileShader(fragmentShader);
+    unsigned int fragmentShaders[2];
+    for (size_t i = 0; i < 2; i++)
+    {
+        fragmentShaders[i] = glCreateShader(GL_FRAGMENT_SHADER);
+    }
 
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+    std::string fragmentShaderSrc = loadShaderSource("C:/Users/Joe/Desktop/Graphics/Projects/learning_opengl/Shaders/fragment_core.glsl");
+    const GLchar* fragShader = fragmentShaderSrc.c_str();
+
+    glShaderSource(fragmentShaders[0], 1, &fragShader, NULL);
+    glCompileShader(fragmentShaders[0]);
+
+    glGetShaderiv(fragmentShaders[0], GL_COMPILE_STATUS, &success);
     if (!success)
     {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+        glGetShaderInfoLog(fragmentShaders[0], 512, NULL, infoLog);
         std::cerr << "Fragment shader compilation failed." << '\n' << infoLog << std::endl;
         return -1;
     }
 
-    // Create shader program
-    unsigned int shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
+    fragmentShaderSrc = loadShaderSource("C:/Users/Joe/Desktop/Graphics/Projects/learning_opengl/Shaders/fragment_core_b.glsl");
+    fragShader = fragmentShaderSrc.c_str();
 
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+    glShaderSource(fragmentShaders[1], 1, &fragShader, NULL);
+    glCompileShader(fragmentShaders[1]);
+
+    glGetShaderiv(fragmentShaders[1], GL_COMPILE_STATUS, &success);
     if (!success)
     {
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+        glGetShaderInfoLog(fragmentShaders[1], 512, NULL, infoLog);
+        std::cerr << "Fragment shader compilation failed." << '\n' << infoLog << std::endl;
+        return -1;
+    }
+
+    // Create shader programs
+    unsigned int shaderPrograms[2];
+    for (size_t i = 0; i < 2; i++)
+    {
+        shaderPrograms[i] = glCreateProgram();
+    }
+
+    glAttachShader(shaderPrograms[0], vertexShader);
+    glAttachShader(shaderPrograms[0], fragmentShaders[0]);
+    glLinkProgram(shaderPrograms[0]);
+
+    glGetProgramiv(shaderPrograms[0], GL_LINK_STATUS, &success);
+    if (!success)
+    {
+        glGetProgramInfoLog(shaderPrograms[0], 512, NULL, infoLog);
+    }
+
+    glAttachShader(shaderPrograms[1], vertexShader);
+    glAttachShader(shaderPrograms[1], fragmentShaders[1]);
+    glLinkProgram(shaderPrograms[1]);
+
+    glGetProgramiv(shaderPrograms[1], GL_LINK_STATUS, &success);
+    if (!success)
+    {
+        glGetProgramInfoLog(shaderPrograms[1], 512, NULL, infoLog);
     }
 
     glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
+    glDeleteShader(fragmentShaders[0]);
+    glDeleteShader(fragmentShaders[1]);
 
     // ==== defining triangle coords ====
     constexpr float triangleA[] = {
@@ -154,9 +170,11 @@ int main()
         glClearColor(0.97f, 0.79f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glUseProgram(shaderProgram);
+        glUseProgram(shaderPrograms[0]);
         glBindVertexArray(VAOs[0]);
         glDrawArrays(GL_TRIANGLES, 0, 3);
+
+        glUseProgram(shaderPrograms[1]);
         glBindVertexArray(VAOs[1]);
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -166,9 +184,53 @@ int main()
 
     glDeleteVertexArrays(2, VAOs);
     glDeleteBuffers(2, VBOs);
-    glDeleteProgram(shaderProgram);
+
+    for (size_t i = 0; i < 2; i++)
+    {
+        glDeleteProgram(shaderPrograms[i]);
+    }
 
     glfwTerminate();
     return 0;
 }
+
+std::string loadShaderSource(const char* filename)
+{
+    std::ifstream file;
+    std::stringstream buffer;
+
+    std::string out = "";
+
+    file.open(filename);
+
+    if (file.is_open())
+    {
+        buffer << file.rdbuf();
+        out = buffer.str();
+    }
+
+    else
+    {
+        std::cerr << "Could not open shader file: " << filename << std::endl;
+    }
+
+    file.close();
+
+    return out;
+}
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+    glViewport(0, 0, width, height);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+}
+
+void processInput(GLFWwindow* window)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    {
+        glfwSetWindowShouldClose(window, true);
+    }
+}
+
 
